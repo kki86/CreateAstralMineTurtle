@@ -1,0 +1,82 @@
+local SIZE = 4
+
+local function forward()
+    while not turtle.forward() do
+        turtle.dig()
+        sleep(0.1)
+    end
+end
+
+local function up()
+    while not turtle.up() do
+        turtle.digUp()
+        sleep(0.1)
+    end
+end
+
+local function turnAround()
+    turtle.turnRight()
+    turtle.turnRight()
+end
+
+-- Mine one 4x4 layer
+local function mineLayer()
+    for row = 1, SIZE do
+
+        for col = 1, SIZE - 1 do
+            turtle.dig()
+            forward()
+        end
+
+        -- Move to next row
+        if row < SIZE then
+            if row % 2 == 1 then
+                turtle.turnRight()
+                turtle.dig()
+                forward()
+                turtle.turnLeft()
+            else
+                turtle.turnLeft()
+                turtle.dig()
+                forward()
+                turtle.turnRight()
+            end
+        end
+    end
+end
+
+-- mine 4 layers
+for layer = 1, SIZE do
+    mineLayer()
+
+    if layer < SIZE then
+        -- Return to the beginning of the current layer
+        turnAround()
+
+        for i = 1, SIZE - 1 do
+            forward()
+        end
+
+        -- Face original direction again
+        turnAround()
+
+        -- Move up one layer
+        up()
+    end
+end
+
+-- return to starting position
+turnAround()
+
+for i = 1, SIZE - 1 do
+    forward()
+end
+
+turnAround()
+
+-- back down to starting height
+for i = 1, SIZE - 1 do
+    turtle.down()
+end
+
+print("complete")
