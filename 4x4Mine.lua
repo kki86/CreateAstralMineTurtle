@@ -116,12 +116,10 @@ for layer = 1, sizeY do
 
     for row = 1, sizeX do
 
-        -- Mine across the row
         for block = 1, sizeZ - 1 do
             forward()
         end
 
-        -- Move to the next row
         if row < sizeX then
 
             if row % 2 == 1 then
@@ -137,9 +135,14 @@ for layer = 1, sizeY do
         end
     end
 
-    -- Go directly down to the next layer
+    -- Move down to next layer
     if layer < sizeY then
         down()
+
+        -- Turn around so the next layer goes
+        -- back across the cube
+        turnRight()
+        turnRight()
     end
 end
 -- ===================================================
