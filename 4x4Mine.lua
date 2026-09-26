@@ -1,9 +1,9 @@
 -- ===================================================
 -- CONFIGURATION
--- Dimensions of the cube to mine (Width x Height x Length)
+-- Dimensions of the cube to mine (Width x Depth x Length)
 -- ===================================================
 local sizeX = 4  -- Width  (columns to the right)
-local sizeY = 4  -- Height (layers up)
+local sizeY = 4  -- Depth  (layers down)
 local sizeZ = 4  -- Length (blocks forward)
 -- ===================================================
 
@@ -112,8 +112,9 @@ end
 -- Returns directly to (0,0,0) facing original direction
 local function returnHome()
     print("Mining complete! Returning home...")
-    while currentY > 0 do
-        down()
+    -- Ascend back up to starting Y level (0)
+    while currentY < 0 do
+        up()
     end
     
     if currentX > 0 then
@@ -141,8 +142,6 @@ local isFirstRun = true
 
 for y = 1, sizeY do
     for x = 1, sizeX do
-        -- The very first strip starts from Z=0 outside the box, so it takes sizeZ steps.
-        -- Every subsequent strip starts inside the box, taking sizeZ - 1 steps.
         local steps = isFirstRun and sizeZ or (sizeZ - 1)
         isFirstRun = false
 
@@ -156,7 +155,7 @@ for y = 1, sizeY do
     end
 
     if y < sizeY then
-        up()
+        down()
         turnRight()
         turnRight()
     end
