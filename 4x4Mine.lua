@@ -114,24 +114,23 @@ for layer = 1, sizeY do
 
     print("Mining layer " .. layer .. " / " .. sizeY)
 
-    -- Mine each row
     for row = 1, sizeX do
 
-        -- Move across the row
+        -- Mine across the row
         for block = 1, sizeZ - 1 do
             forward()
         end
 
-        -- Move to next row
+        -- Move to the next row
         if row < sizeX then
 
             if row % 2 == 1 then
-                -- Facing forward
+                -- Right, forward, right
                 turnRight()
                 forward()
                 turnRight()
             else
-                -- Facing backward
+                -- Left, forward, left
                 turnLeft()
                 forward()
                 turnLeft()
@@ -140,28 +139,26 @@ for layer = 1, sizeY do
         end
     end
 
-    -- Return to starting corner of this layer
+    -- Move to the next layer
     if layer < sizeY then
 
-        -- For an even number of rows,
-        -- turtle is facing backward.
-        -- Turn left to face the starting side.
-        if sizeX % 2 == 0 then
-            turnLeft()
-        else
-            turnRight()
-        end
+        -- Turn around
+        turnRight()
+        turnRight()
 
-        -- Move back across the rows
-        for i = 1, sizeX - 1 do
+        -- Return across the layer
+        for i = 1, sizeZ - 1 do
             forward()
         end
 
-        -- Move down one layer
+        -- Restore original direction
+        turnRight()
+        turnRight()
+
+        -- Go down exactly one block
         down()
     end
 end
-
 -- ===================================================
 -- RETURN HOME
 -- ===================================================
