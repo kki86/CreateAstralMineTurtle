@@ -51,10 +51,35 @@ local function down()
     end
 end
 
+-- Move up while digging
+local function up()
+    if not checkFuel() then
+        error("Out of fuel!")
+    end
+
+    turtle.digUp()
+
+    while not turtle.up() do
+        turtle.digUp()
+        sleep(0.1)
+    end
+end
+
 -- Turn around
 local function turnAround()
     turtle.turnRight()
     turtle.turnRight()
+end
+
+-- Move forward WITHOUT digging
+local function moveForward()
+    if not checkFuel() then
+        error("Out of fuel!")
+    end
+
+    while not turtle.forward() do
+        sleep(0.1)
+    end
 end
 
 -- Mine one 4x4 layer
@@ -83,23 +108,26 @@ local function mineLayer()
     end
 end
 
--- Return to starting position of the layer
+-- Return to the beginning of the layer
 local function returnToStart()
 
+    -- Turn around
     turnAround()
 
-    -- Move across the last row
+    -- Go back across the last row
     for i = 1, SIZE - 1 do
-        forward()
+        moveForward()
     end
 
-    -- Move back to the first row
+    -- Turn toward the first row
     turtle.turnLeft()
 
+    -- Go back across the rows
     for i = 1, SIZE - 1 do
-        forward()
+        moveForward()
     end
 
+    -- Restore original direction
     turtle.turnRight()
 end
 
@@ -110,21 +138,33 @@ if not checkFuel() then
     return
 end
 
--- Mine 4 layers downward
+print("Starting 4x4x4 mine...")
+
+-- Enter the first layer of the cube
+down()
+
+-- Mine 4 layers
 for layer = 1, SIZE do
 
     print("Mining layer " .. layer .. " of " .. SIZE)
 
     mineLayer()
 
-    -- Return to the starting corner
+    -- Return to the corner
     returnToStart()
 
-    -- Move down to the next layer
+    -- Go to next layer
     if layer < SIZE then
         down()
     end
 end
 
-print("Mining complete!")
+print("4x4x4 mining complete!")
+
+-- Return to original height
+for i = 1, SIZE do
+    up()
+end
+
+print("Returned to starting location.")
 print("Fuel remaining: " .. turtle.getFuelLevel())
