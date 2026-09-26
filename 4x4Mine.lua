@@ -1,3 +1,93 @@
+-- CONFIGURATION
+
+local sizeX = 4
+local sizeY = 4
+local sizeZ = 4
+
+local FUEL_CHECK_INTERVAL = 10
+local MIN_FUEL = 50
+
+-- FUEL
+
+local blocksMoved = 0
+
+local function tryRefuel()
+    if turtle.getFuelLevel() == "unlimited" then
+        return
+    end
+
+    for slot = 1, 16 do
+        turtle.select(slot)
+
+        if turtle.refuel(0) then
+            turtle.refuel()
+        end
+    end
+
+    turtle.select(1)
+end
+
+local function checkFuel()
+    if turtle.getFuelLevel() == "unlimited" then
+        return
+    end
+
+    if turtle.getFuelLevel() < MIN_FUEL then
+        print("Fuel low! Refueling...")
+        tryRefuel()
+        print("Fuel: " .. tostring(turtle.getFuelLevel()))
+    end
+end
+
+local function countBlock()
+    blocksMoved = blocksMoved + 1
+
+    if blocksMoved >= FUEL_CHECK_INTERVAL then
+        checkFuel()
+        blocksMoved = 0
+    end
+end
+
+-- MOVEMENT
+
+local function forward()
+    while not turtle.forward() do
+        turtle.dig()
+        turtle.attack()
+        sleep(0.2)
+    end
+
+    countBlock()
+end
+
+local function down()
+    while not turtle.down() do
+        turtle.digDown()
+        turtle.attackDown()
+        sleep(0.2)
+    end
+
+    countBlock()
+end
+
+local function up()
+    while not turtle.up() do
+        turtle.digUp()
+        turtle.attackUp()
+        sleep(0.2)
+    end
+
+    countBlock()
+end
+
+local function turnRight()
+    turtle.turnRight()
+end
+
+local function turnLeft()
+    turtle.turnLeft()
+end
+
 -- ===================================================
 -- MAIN
 -- ===================================================
