@@ -3,7 +3,7 @@
 -- ===================================================
 
 local sizeX = 4       -- Number of rows
-local sizeY = 4       -- Number of layers downward
+local sizeY = 4       -- Number of layers
 local sizeZ = 4       -- Length of each row
 
 local FUEL_CHECK_INTERVAL = 10
@@ -15,28 +15,31 @@ local MIN_FUEL = 50
 
 local blocksMoved = 0
 
-local function tryRefuel()
+local function refuel()
 
     if turtle.getFuelLevel() == "unlimited" then
         return
     end
+
+    print("Fuel low! Refueling...")
 
     -- Check every inventory slot
     for slot = 1, 16 do
 
         turtle.select(slot)
 
-        -- Check if this item is fuel
+        -- Check whether this item is fuel
         if turtle.refuel(0) then
 
-            -- Consume all fuel from this slot
-            while turtle.refuel() do
-            end
+            -- Consume fuel from this slot
+            turtle.refuel(64)
 
         end
     end
 
     turtle.select(1)
+
+    print("Fuel after refueling: " .. tostring(turtle.getFuelLevel()))
 end
 
 
@@ -46,18 +49,14 @@ local function checkFuel()
         return
     end
 
+    -- Only refuel when actually low
     if turtle.getFuelLevel() < MIN_FUEL then
+        refuel()
+    end
 
-        print("Fuel low! Refueling...")
-
-        tryRefuel()
-
-        print("Fuel: " .. tostring(turtle.getFuelLevel()))
-
-        -- Stop if we could not get fuel
-        if turtle.getFuelLevel() < MIN_FUEL then
-            error("Not enough fuel!")
-        end
+    -- If we still don't have enough fuel, stop
+    if turtle.getFuelLevel() < MIN_FUEL then
+        error("Not enough fuel!")
     end
 end
 
@@ -66,8 +65,11 @@ local function countBlock()
 
     blocksMoved = blocksMoved + 1
 
+    -- Only check fuel every 10 movements
     if blocksMoved >= FUEL_CHECK_INTERVAL then
+
         checkFuel()
+
         blocksMoved = 0
     end
 end
@@ -78,12 +80,10 @@ end
 
 local function forward()
 
-    -- Make sure we have fuel before moving
     checkFuel()
 
     while not turtle.forward() do
 
-        -- Try to clear the obstruction
         turtle.dig()
         turtle.attack()
 
@@ -139,18 +139,17 @@ end
 -- START
 -- ===================================================
 
+print("================================")
+print("4x4x4 Mining Turtle")
+print("================================")
+
 print("Checking fuel...")
 
-tryRefuel()
+-- Only refuel if we actually start below
+-- the minimum fuel level.
+checkFuel()
 
 print("Starting fuel: " .. tostring(turtle.getFuelLevel()))
-
-if turtle.getFuelLevel() ~= "unlimited"
-and turtle.getFuelLevel() < MIN_FUEL then
-
-    error("Not enough fuel to start!")
-
-end
 
 -- ===================================================
 -- MOVE TO FIRST LAYER
@@ -171,7 +170,7 @@ for layer = 1, sizeY do
     print("================================")
 
     -- -----------------------------------------------
-    -- Mine each row
+    -- MINE ROWS
     -- -----------------------------------------------
 
     for row = 1, sizeX do
@@ -192,27 +191,31 @@ for layer = 1, sizeY do
 
         if row < sizeX then
 
-            -- The direction alternates between
-            -- layers and rows.
+            -- Alternate row direction between
+            -- layers.
             --
             -- Layer 1:
-            --   Row 1 -> 
-            --   Row 2 <-
-            --   Row 3 ->
-            --   Row 4 <-
+            --   Row 1  --->
+            --   Row 2  <---
+            --   Row 3  --->
+            --   Row 4  <---
             --
             -- Layer 2:
-            --   Row 1 <-
-            --   Row 2 ->
-            --   Row 3 <-
-            --   Row 4 ->
+            --   Row 1  <---
+            --   Row 2  --->
+            --   Row 3  <---
+            --   Row 4  --->
+            --
+            -- This allows the turtle to move directly
+            -- down to the next layer without needing
+            -- any horizontal movement.
 
             if (layer + row) % 2 == 0 then
 
                 -- Turn right
                 turnRight()
 
-                -- Move to next row
+                -- Move one block into the next row
                 forward()
 
                 -- Face down the next row
@@ -223,7 +226,7 @@ for layer = 1, sizeY do
                 -- Turn left
                 turnLeft()
 
-                -- Move to next row
+                -- Move one block into the next row
                 forward()
 
                 -- Face down the next row
@@ -234,19 +237,18 @@ for layer = 1, sizeY do
     end
 
     -- -----------------------------------------------
-    -- Move down to next layer
+    -- MOVE DOWN TO NEXT LAYER
     -- -----------------------------------------------
 
     if layer < sizeY then
 
         print("Moving down to layer " .. (layer + 1))
 
-        -- ONLY move down.
-        --
         -- Do NOT turn here.
-        -- The alternating row pattern already
-        -- leaves us facing the correct direction
-        -- for the next layer.
+        --
+        -- The row pattern already leaves the turtle
+        -- facing the correct direction for the next
+        -- layer.
 
         down()
     end
@@ -261,23 +263,18 @@ print("Mining complete!")
 print("Returning home...")
 print("================================")
 
--- At the end of layer 4:
+-- Because the layers alternate directions,
+-- after the 4th layer the turtle is back at
+-- the original X/Z corner.
 --
--- Position:
---   Same X/Z corner where we started
+-- We only need to move UP.
 --
--- Direction:
---   Same direction where we started
+-- Down movements:
 --
--- Therefore NO horizontal movement is needed.
-
--- Return to original height.
---
--- We moved:
---   1 block down before layer 1
---   1 block down between layers 1/2
---   1 block down between layers 2/3
---   1 block down between layers 3/4
+--   1. Before layer 1
+--   2. Between layer 1 and 2
+--   3. Between layer 2 and 3
+--   4. Between layer 3 and 4
 --
 -- Total = 4 blocks down.
 
@@ -285,5 +282,11 @@ for i = 1, sizeY do
     up()
 end
 
+-- ===================================================
+-- DONE
+-- ===================================================
+
+print("================================")
 print("Returned to starting position!")
 print("Final fuel: " .. tostring(turtle.getFuelLevel()))
+print("================================")
