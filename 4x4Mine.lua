@@ -125,12 +125,10 @@ for layer = 1, sizeY do
         if row < sizeX then
 
             if row % 2 == 1 then
-                -- Right, forward, right
                 turnRight()
                 forward()
                 turnRight()
             else
-                -- Left, forward, left
                 turnLeft()
                 forward()
                 turnLeft()
@@ -139,23 +137,8 @@ for layer = 1, sizeY do
         end
     end
 
-    -- Move to the next layer
+    -- Go directly down to the next layer
     if layer < sizeY then
-
-        -- Turn around
-        turnRight()
-        turnRight()
-
-        -- Return across the layer
-        for i = 1, sizeZ - 1 do
-            forward()
-        end
-
-        -- Restore original direction
-        turnRight()
-        turnRight()
-
-        -- Go down exactly one block
         down()
     end
 end
