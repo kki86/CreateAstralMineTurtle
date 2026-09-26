@@ -1,174 +1,158 @@
-local SIZE = 4
-local MIN_FUEL = 50
+-- ===================================================
+-- MINING TURTLE CONFIGURATION
+-- Change these numbers to set your mining cube size:
+-- ===================================================
+local sizeX = 4  -- Width  (columns / right)
+local sizeY = 4  -- Height (layers / up)
+local sizeZ = 4  -- Length (rows / forward)
+-- ===================================================
 
--- Refuel from any fuel in inventory
-local function refuel()
+-- Tracking local position relative to starting spot (0,0,0)
+local currentX, currentY, currentZ = 0, 0, 0
+local dir = 0 -- 0: +Z (Forward), 1: +X (Right), 2: -Z (Back), 3: -X (Left)
+
+-- Consumes fuel from inventory if available
+local function tryRefuel()
+    if turtle.getFuelLevel() == "unlimited" then return true end
     for slot = 1, 16 do
         turtle.select(slot)
-        turtle.refuel()
+        if turtle.refuel(0) then
+            while turtle.getItemCount(slot) > 0 do
+                if not turtle.refuel(1) then break end
+            end
+        end
+    end
+    turtle.select(1)
+end
+
+-- Checks fuel level and pauses if fuel is critically low
+local function ensureFuel(requiredFuel)
+    if turtle.getFuelLevel() == "unlimited" then return end
+    while turtle.getFuelLevel() < requiredFuel do
+        tryRefuel()
+        if turtle.getFuelLevel() < requiredFuel then
+            print("LOW FUEL! Needs at least " .. requiredFuel .. " fuel.")
+            print("Current Fuel: " .. turtle.getFuelLevel() .. " / " .. turtle.getFuelLimit())
+            print("Please place fuel into turtle inventory...")
+            sleep(5)
+        end
     end
 end
 
--- Make sure we have enough fuel
-local function checkFuel()
-    if turtle.getFuelLevel() < MIN_FUEL then
-        refuel()
-    end
+-- Rotational utilities
+local function turnRight()
+    turtle.turnRight()
+    dir = (dir + 1) % 4
+end
 
-    if turtle.getFuelLevel() < MIN_FUEL then
-        error("Not enough fuel!")
+local function turnLeft()
+    turtle.turnLeft()
+    dir = (dir + 3) % 4
+end
+
+local function face(targetDir)
+    while dir ~= targetDir do
+        turnRight()
     end
 end
 
--- Move forward while digging
-local function digForward()
-    checkFuel()
-
-    turtle.dig()
-
+-- Movement utilities with auto-digging (handles gravel/sand)
+local function moveForward()
+    local neededFuel = math.abs(currentX) + math.abs(currentY) + math.abs(currentZ) + 10
+    ensureFuel(neededFuel)
+    
     while not turtle.forward() do
         turtle.dig()
-        sleep(0.1)
+        turtle.attack()
+        sleep(0.3)
+    end
+
+    if dir == 0 then currentZ = currentZ + 1
+    elseif dir == 1 then currentX = currentX + 1
+    elseif dir == 2 then currentZ = currentZ - 1
+    elseif dir == 3 then currentX = currentX - 1
     end
 end
 
--- Move down while digging
-local function digDown()
-    checkFuel()
-
-    turtle.digDown()
-
-    while not turtle.down() do
-        turtle.digDown()
-        sleep(0.1)
-    end
-end
-
--- Move up while digging
-local function digUp()
-    checkFuel()
-
-    turtle.digUp()
+local function moveUp()
+    local neededFuel = math.abs(currentX) + math.abs(currentY) + math.abs(currentZ) + 10
+    ensureFuel(neededFuel)
 
     while not turtle.up() do
         turtle.digUp()
-        sleep(0.1)
+        turtle.attackUp()
+        sleep(0.3)
+    end
+    currentY = currentY + 1
+end
+
+local function moveDown()
+    local neededFuel = math.abs(currentX) + math.abs(currentY) + math.abs(currentZ) + 10
+    ensureFuel(neededFuel)
+
+    while not turtle.down() do
+        turtle.digDown()
+        turtle.attackDown()
+        sleep(0.3)
+    end
+    currentY = currentY - 1
+end
+
+-- Navigate directly to a specific target coordinate adjacent to current position
+local function goTo(tx, ty, tz)
+    while currentY < ty do moveUp() end
+    while currentY > ty do moveDown() end
+
+    if tx > currentX then
+        face(1)
+        while currentX < tx do moveForward() end
+    elseif tx < currentX then
+        face(3)
+        while currentX > tx do moveForward() end
+    end
+
+    if tz > currentZ then
+        face(0)
+        while currentZ < tz do moveForward() end
+    elseif tz < currentZ then
+        face(2)
+        while currentZ < tz do moveForward() end
     end
 end
 
--- Move forward WITHOUT digging
-local function moveForward()
-    checkFuel()
+-- ===================================================
+-- MAIN MINING EXECUTION
+-- ===================================================
+print("Starting initial refuel check...")
+tryRefuel()
+print("Current fuel: " .. tostring(turtle.getFuelLevel()))
 
-    while not turtle.forward() do
-        sleep(0.1)
+print("Beginning excavation (" .. sizeX .. "x" .. sizeY .. "x" .. sizeZ .. ")...")
+
+for y = 0, sizeY - 1 do
+    local xStart, xEnd, xStep
+    if y % 2 == 0 then
+        xStart, xEnd, xStep = 0, sizeX - 1, 1
+    else
+        xStart, xEnd, xStep = sizeX - 1, 0, -1
+    end
+
+    for x = xStart, xEnd, xStep do
+        local zStart, zEnd, zStep
+        if currentZ == 0 then
+            zStart, zEnd, zStep = 0, sizeZ - 1, 1
+        else
+            zStart, zEnd, zStep = sizeZ - 1, 0, -1
+        end
+
+        for z = zStart, zEnd, zStep do
+            goTo(x, y, z)
+        end
     end
 end
 
--- Turn around
-local function turnAround()
-    turtle.turnRight()
-    turtle.turnRight()
-end
-
--- Mine one complete 4x4 layer
-local function mineLayer()
-
-    -- Row 1: →
-    for i = 1, SIZE - 1 do
-        digForward()
-    end
-
-    -- Move to row 2
-    turtle.turnRight()
-    digForward()
-    turtle.turnLeft()
-
-    -- Row 2: ←
-    for i = 1, SIZE - 1 do
-        digForward()
-    end
-
-    -- Move to row 3
-    turtle.turnLeft()
-    digForward()
-    turtle.turnRight()
-
-    -- Row 3: →
-    for i = 1, SIZE - 1 do
-        digForward()
-    end
-
-    -- Move to row 4
-    turtle.turnRight()
-    digForward()
-    turtle.turnLeft()
-
-    -- Row 4: ←
-    for i = 1, SIZE - 1 do
-        digForward()
-    end
-end
-
--- Return to the beginning of a layer
-local function returnToLayerStart()
-
-    -- After a 4x4 layer we are at:
-    --
-    -- [S][ ][ ][ ]
-    -- [ ][ ][ ][ ]
-    -- [ ][ ][ ][ ]
-    -- [ ][ ][ ][T]
-    --
-    -- Turn around and go back 3 blocks.
-    turnAround()
-
-    for i = 1, SIZE - 1 do
-        moveForward()
-    end
-
-    -- We are facing the original direction again.
-    turnAround()
-end
-
---------------------------------------------------
--- START
---------------------------------------------------
-
-print("Refueling...")
-refuel()
-
-checkFuel()
-
-print("Starting 4x4x4 mine...")
-
--- Enter the first block of the cube.
--- The turtle starts ABOVE the cube.
-digDown()
-
--- Mine 4 layers
-for layer = 1, SIZE do
-
-    print("Mining layer " .. layer .. " / " .. SIZE)
-
-    mineLayer()
-
-    -- Return to the same corner of this layer
-    returnToLayerStart()
-
-    -- Go down to the next layer
-    if layer < SIZE then
-        digDown()
-    end
-end
-
-print("4x4x4 cube mined!")
-
--- Return to the original height.
--- We are 4 blocks below where we started.
-for i = 1, SIZE do
-    digUp()
-end
-
-print("Returned to starting location.")
-print("Fuel remaining: " .. turtle.getFuelLevel())
+-- Return Home Procedure
+print("Mining complete! Returning to home position...")
+goTo(0, 0, 0)
+face(0)
+print("Returned home safely!")
