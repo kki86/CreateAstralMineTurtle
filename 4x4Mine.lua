@@ -23,17 +23,13 @@ local function refuel()
 
     print("Fuel low! Refueling...")
 
-    -- Check every inventory slot
     for slot = 1, 16 do
 
         turtle.select(slot)
 
-        -- Check whether this item is fuel
+        -- Check if the item is fuel
         if turtle.refuel(0) then
-
-            -- Consume fuel from this slot
             turtle.refuel(64)
-
         end
     end
 
@@ -49,12 +45,12 @@ local function checkFuel()
         return
     end
 
-    -- Only refuel when actually low
+    -- Only refuel when fuel is actually low
     if turtle.getFuelLevel() < MIN_FUEL then
         refuel()
     end
 
-    -- If we still don't have enough fuel, stop
+    -- Stop if there is still not enough fuel
     if turtle.getFuelLevel() < MIN_FUEL then
         error("Not enough fuel!")
     end
@@ -65,11 +61,9 @@ local function countBlock()
 
     blocksMoved = blocksMoved + 1
 
-    -- Only check fuel every 10 movements
+    -- Only check fuel periodically
     if blocksMoved >= FUEL_CHECK_INTERVAL then
-
         checkFuel()
-
         blocksMoved = 0
     end
 end
@@ -135,6 +129,12 @@ local function turnLeft()
     turtle.turnLeft()
 end
 
+
+local function turnAround()
+    turtle.turnRight()
+    turtle.turnRight()
+end
+
 -- ===================================================
 -- START
 -- ===================================================
@@ -145,8 +145,6 @@ print("================================")
 
 print("Checking fuel...")
 
--- Only refuel if we actually start below
--- the minimum fuel level.
 checkFuel()
 
 print("Starting fuel: " .. tostring(turtle.getFuelLevel()))
@@ -170,7 +168,7 @@ for layer = 1, sizeY do
     print("================================")
 
     -- -----------------------------------------------
-    -- MINE ROWS
+    -- MINE EACH ROW
     -- -----------------------------------------------
 
     for row = 1, sizeX do
@@ -191,45 +189,24 @@ for layer = 1, sizeY do
 
         if row < sizeX then
 
-            -- Alternate row direction between
-            -- layers.
-            --
-            -- Layer 1:
-            --   Row 1  --->
-            --   Row 2  <---
-            --   Row 3  --->
-            --   Row 4  <---
-            --
-            -- Layer 2:
-            --   Row 1  <---
-            --   Row 2  --->
-            --   Row 3  <---
-            --   Row 4  --->
-            --
-            -- This allows the turtle to move directly
-            -- down to the next layer without needing
-            -- any horizontal movement.
+            if row % 2 == 1 then
 
-            if (layer + row) % 2 == 0 then
+                -- Odd row:
+                -- Turn right, move to next row,
+                -- then turn right again.
 
-                -- Turn right
                 turnRight()
-
-                -- Move one block into the next row
                 forward()
-
-                -- Face down the next row
                 turnRight()
 
             else
 
-                -- Turn left
+                -- Even row:
+                -- Turn left, move to next row,
+                -- then turn left again.
+
                 turnLeft()
-
-                -- Move one block into the next row
                 forward()
-
-                -- Face down the next row
                 turnLeft()
 
             end
@@ -237,20 +214,22 @@ for layer = 1, sizeY do
     end
 
     -- -----------------------------------------------
-    -- MOVE DOWN TO NEXT LAYER
+    -- MOVE TO NEXT LAYER
     -- -----------------------------------------------
 
     if layer < sizeY then
 
         print("Moving down to layer " .. (layer + 1))
 
-        -- Do NOT turn here.
-        --
-        -- The row pattern already leaves the turtle
-        -- facing the correct direction for the next
-        -- layer.
-
+        -- Move down one block
         down()
+
+        -- Turn around 180 degrees
+        --
+        -- This resets the direction for the
+        -- next 4x4 layer.
+
+        turnAround()
     end
 end
 
@@ -263,20 +242,17 @@ print("Mining complete!")
 print("Returning home...")
 print("================================")
 
--- Because the layers alternate directions,
--- after the 4th layer the turtle is back at
--- the original X/Z corner.
+-- We moved down:
 --
--- We only need to move UP.
+--   1 block before layer 1
+--   1 block between layer 1 and 2
+--   1 block between layer 2 and 3
+--   1 block between layer 3 and 4
 --
--- Down movements:
+-- Total = 4 blocks.
 --
---   1. Before layer 1
---   2. Between layer 1 and 2
---   3. Between layer 2 and 3
---   4. Between layer 3 and 4
---
--- Total = 4 blocks down.
+-- After the 4th layer, the turtle is back at
+-- the original X/Z position.
 
 for i = 1, sizeY do
     up()
