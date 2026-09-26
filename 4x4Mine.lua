@@ -16,18 +16,13 @@ local function checkFuel()
     end
 
     if turtle.getFuelLevel() < MIN_FUEL then
-        print("Not enough fuel!")
-        return false
+        error("Not enough fuel!")
     end
-
-    return true
 end
 
 -- Move forward while digging
-local function forward()
-    if not checkFuel() then
-        error("Out of fuel!")
-    end
+local function digForward()
+    checkFuel()
 
     turtle.dig()
 
@@ -38,10 +33,8 @@ local function forward()
 end
 
 -- Move down while digging
-local function down()
-    if not checkFuel() then
-        error("Out of fuel!")
-    end
+local function digDown()
+    checkFuel()
 
     turtle.digDown()
 
@@ -52,15 +45,22 @@ local function down()
 end
 
 -- Move up while digging
-local function up()
-    if not checkFuel() then
-        error("Out of fuel!")
-    end
+local function digUp()
+    checkFuel()
 
     turtle.digUp()
 
     while not turtle.up() do
         turtle.digUp()
+        sleep(0.1)
+    end
+end
+
+-- Move forward WITHOUT digging
+local function moveForward()
+    checkFuel()
+
+    while not turtle.forward() do
         sleep(0.1)
     end
 end
@@ -71,99 +71,103 @@ local function turnAround()
     turtle.turnRight()
 end
 
--- Move forward WITHOUT digging
-local function moveForward()
-    if not checkFuel() then
-        error("Out of fuel!")
-    end
-
-    while not turtle.forward() do
-        sleep(0.1)
-    end
-end
-
--- Mine one 4x4 layer
+-- Mine one complete 4x4 layer
 local function mineLayer()
 
-    for row = 1, SIZE do
-
-        for col = 1, SIZE - 1 do
-            forward()
-        end
-
-        -- Move to next row
-        if row < SIZE then
-
-            if row % 2 == 1 then
-                turtle.turnRight()
-                forward()
-                turtle.turnLeft()
-            else
-                turtle.turnLeft()
-                forward()
-                turtle.turnRight()
-            end
-
-        end
-    end
-end
-
--- Return to the beginning of the layer
-local function returnToStart()
-
-    -- Turn around
-    turnAround()
-
-    -- Go back across the last row
+    -- Row 1: →
     for i = 1, SIZE - 1 do
-        moveForward()
+        digForward()
     end
 
-    -- Turn toward the first row
+    -- Move to row 2
+    turtle.turnRight()
+    digForward()
     turtle.turnLeft()
 
-    -- Go back across the rows
+    -- Row 2: ←
+    for i = 1, SIZE - 1 do
+        digForward()
+    end
+
+    -- Move to row 3
+    turtle.turnLeft()
+    digForward()
+    turtle.turnRight()
+
+    -- Row 3: →
+    for i = 1, SIZE - 1 do
+        digForward()
+    end
+
+    -- Move to row 4
+    turtle.turnRight()
+    digForward()
+    turtle.turnLeft()
+
+    -- Row 4: ←
+    for i = 1, SIZE - 1 do
+        digForward()
+    end
+end
+
+-- Return to the beginning of a layer
+local function returnToLayerStart()
+
+    -- After a 4x4 layer we are at:
+    --
+    -- [S][ ][ ][ ]
+    -- [ ][ ][ ][ ]
+    -- [ ][ ][ ][ ]
+    -- [ ][ ][ ][T]
+    --
+    -- Turn around and go back 3 blocks.
+    turnAround()
+
     for i = 1, SIZE - 1 do
         moveForward()
     end
 
-    -- Restore original direction
-    turtle.turnRight()
+    -- We are facing the original direction again.
+    turnAround()
 end
 
--- Initial refuel
+--------------------------------------------------
+-- START
+--------------------------------------------------
+
+print("Refueling...")
 refuel()
 
-if not checkFuel() then
-    return
-end
+checkFuel()
 
 print("Starting 4x4x4 mine...")
 
--- Enter the first layer of the cube
-down()
+-- Enter the first block of the cube.
+-- The turtle starts ABOVE the cube.
+digDown()
 
 -- Mine 4 layers
 for layer = 1, SIZE do
 
-    print("Mining layer " .. layer .. " of " .. SIZE)
+    print("Mining layer " .. layer .. " / " .. SIZE)
 
     mineLayer()
 
-    -- Return to the corner
-    returnToStart()
+    -- Return to the same corner of this layer
+    returnToLayerStart()
 
-    -- Go to next layer
+    -- Go down to the next layer
     if layer < SIZE then
-        down()
+        digDown()
     end
 end
 
-print("4x4x4 mining complete!")
+print("4x4x4 cube mined!")
 
--- Return to original height
+-- Return to the original height.
+-- We are 4 blocks below where we started.
 for i = 1, SIZE do
-    up()
+    digUp()
 end
 
 print("Returned to starting location.")
