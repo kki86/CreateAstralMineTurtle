@@ -99,16 +99,22 @@ for layer = 1, SIZE do
 
     if layer < SIZE then
 
-        -- Return to beginning of layer
+        -- Return to starting position
         turnAround()
 
         for i = 1, SIZE - 1 do
             forward()
         end
 
-        turnAround()
+        turtle.turnLeft()
 
-        -- Move up
+        for i = 1, SIZE - 1 do
+            forward()
+        end
+
+        turtle.turnRight()
+
+        -- Move up to next layer
         up()
     end
 end
