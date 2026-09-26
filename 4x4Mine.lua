@@ -125,39 +125,54 @@ down()
 -- Mine the cube
 -- ---------------------------------------------------
 
+-- Move down into the first layer
+down()
+
 for layer = 1, sizeY do
 
     print("Mining layer " .. layer .. " / " .. sizeY)
 
+    -- 4 rows
     for row = 1, sizeX do
 
-        -- Move forward 3 blocks
-        -- This creates 4 blocks across the row
+        -- Move 3 blocks forward
         for block = 1, sizeZ - 1 do
             forward()
         end
 
-        -- Move to the next row
+        -- Move to next row
         if row < sizeX then
-
-            turnRight()
-
-            forward()
-
-            turnRight()
+            if row % 2 == 1 then
+                -- Facing forward
+                turnRight()
+                forward()
+                turnRight()
+            else
+                -- Facing backward
+                turnLeft()
+                forward()
+                turnLeft()
+            end
         end
     end
 
-    -- Move down to the next layer
+    -- At the end of the layer, return to
+    -- the starting corner of that layer.
     if layer < sizeY then
 
-        print("Moving down to next layer...")
+        -- Face back toward the starting side
+        if (sizeX % 2) == 0 then
+            turnRight()
+            turnRight()
+        end
 
+        -- Move back across the rows
+        for i = 1, sizeX - 1 do
+            forward()
+        end
+
+        -- Move down one layer
         down()
-
-        -- Turn around for the next layer
-        turnRight()
-        turnRight()
     end
 end
 
