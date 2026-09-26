@@ -1,47 +1,35 @@
 -- ===================================================
 -- MINING TURTLE CONFIGURATION
--- Change these numbers to set your mining cube size:
+-- Dimensions of the cube to mine (Width x Depth x Length)
 -- ===================================================
 local sizeX = 4  -- Width  (columns to the right)
 local sizeY = 4  -- Depth  (layers DOWN)
 local sizeZ = 4  -- Length (blocks forward)
 -- ===================================================
 
--- Position tracking relative to starting position (0, 0, 0)
+-- Position tracking relative to start (0, 0, 0)
 local currentX, currentY, currentZ = 0, 0, 0
 local heading = 0 -- 0: +Z (Forward), 1: +X (Right), 2: -Z (Back), 3: -X (Left)
 
--- Refuel function: consumes fuel items from inventory
+-- Safe, standard ComputerCraft refueling
 local function tryRefuel()
-    local refueled = false
+    if turtle.getFuelLevel() == "unlimited" then return end
     for slot = 1, 16 do
         turtle.select(slot)
-        if turtle.refuel(0) then
-            while turtle.getItemCount(slot) > 0 do
-                if turtle.refuel(1) then
-                    refueled = true
-                else
-                    break
-                end
-            end
-        end
+        turtle.refuel()
     end
     turtle.select(1)
-    return refueled
 end
 
--- Checks fuel level against required travel distance home
-local function checkFuel()
+-- Ensures fuel is sufficient for movement + trip home
+local function ensureFuel(needed)
     if turtle.getFuelLevel() == "unlimited" then return end
-    local requiredFuel = math.abs(currentX) + math.abs(currentY) + math.abs(currentZ) + 10
-    while turtle.getFuelLevel() < requiredFuel do
-        print("LOW FUEL! Level: " .. turtle.getFuelLevel() .. " / Needs: " .. requiredFuel)
-        print("Refueling from inventory...")
+    tryRefuel()
+    while turtle.getFuelLevel() < needed do
+        print("LOW FUEL! Has: " .. turtle.getFuelLevel() .. " / Needs: " .. needed)
+        print("Place coal/charcoal in inventory...")
+        sleep(3)
         tryRefuel()
-        if turtle.getFuelLevel() < requiredFuel then
-            print("Please place fuel into turtle inventory...")
-            sleep(4)
-        end
     end
 end
 
@@ -62,13 +50,14 @@ local function face(targetHeading)
     end
 end
 
--- Robust movement utilities using your reference pattern
+-- Movement utilities with auto-dig and attack
 local function moveForward()
-    checkFuel()
+    local needed = math.abs(currentX) + math.abs(currentY) + math.abs(currentZ) + 10
+    ensureFuel(needed)
     while not turtle.forward() do
         turtle.dig()
         turtle.attack()
-        sleep(0.4)
+        sleep(0.3)
     end
     if heading == 0 then currentZ = currentZ + 1
     elseif heading == 1 then currentX = currentX + 1
@@ -78,41 +67,39 @@ local function moveForward()
 end
 
 local function moveDown()
-    checkFuel()
+    local needed = math.abs(currentX) + math.abs(currentY) + math.abs(currentZ) + 10
+    ensureFuel(needed)
     while not turtle.down() do
         turtle.digDown()
         turtle.attackDown()
-        sleep(0.4)
+        sleep(0.3)
     end
     currentY = currentY - 1
 end
 
 local function moveUp()
-    checkFuel()
+    local needed = math.abs(currentX) + math.abs(currentY) + math.abs(currentZ) + 10
+    ensureFuel(needed)
     while not turtle.up() do
         turtle.digUp()
         turtle.attackUp()
-        sleep(0.4)
+        sleep(0.3)
     end
     currentY = currentY + 1
 end
 
--- Return to X=0, Z=0 inside the currently cleared layer air space
+-- Returns to (0, currentY, 0) inside the current layer
 local function returnToLayerStart()
-    face(2) -- Face -Z (Backward)
-    while currentZ > 0 do
-        moveForward()
-    end
+    face(2) -- Backwards (-Z)
+    while currentZ > 0 do moveForward() end
 
-    face(3) -- Face -X (Left)
-    while currentX > 0 do
-        moveForward()
-    end
+    face(3) -- Left (-X)
+    while currentX > 0 do moveForward() end
 
-    face(0) -- Face +Z (Forward)
+    face(0) -- Forward (+Z)
 end
 
--- Complete return to starting origin (0, 0, 0)
+-- Returns all the way home to (0, 0, 0)
 local function returnHome()
     print("Mining complete! Returning home...")
     returnToLayerStart()
@@ -122,21 +109,18 @@ local function returnHome()
     end
 
     face(0)
-    print("Returned to home position!")
+    print("Back at starting position!")
 end
 
 -- ===================================================
 -- MAIN EXECUTION
 -- ===================================================
-print("Checking fuel on start...")
+print("Checking fuel...")
 tryRefuel()
-print("Starting Fuel Level: " .. tostring(turtle.getFuelLevel()))
-
-print("Starting excavation (" .. sizeX .. " wide, " .. sizeY .. " deep down, " .. sizeZ .. " long)...")
+print("Fuel level: " .. tostring(turtle.getFuelLevel()))
 
 for y = 1, sizeY do
     print("Mining layer " .. y .. " of " .. sizeY .. "...")
-    
     for x = 1, sizeX do
         local steps = (x == 1) and sizeZ or (sizeZ - 1)
         for z = 1, steps do
@@ -156,7 +140,6 @@ for y = 1, sizeY do
         end
     end
 
-    -- Prepare for the next layer down if not finished
     if y < sizeY then
         returnToLayerStart()
         moveDown()
