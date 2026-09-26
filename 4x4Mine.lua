@@ -27,7 +27,6 @@ local function refuel()
 
         turtle.select(slot)
 
-        -- Check if the item is fuel
         if turtle.refuel(0) then
             turtle.refuel(64)
         end
@@ -45,12 +44,10 @@ local function checkFuel()
         return
     end
 
-    -- Only refuel when fuel is actually low
     if turtle.getFuelLevel() < MIN_FUEL then
         refuel()
     end
 
-    -- Stop if there is still not enough fuel
     if turtle.getFuelLevel() < MIN_FUEL then
         error("Not enough fuel!")
     end
@@ -61,7 +58,6 @@ local function countBlock()
 
     blocksMoved = blocksMoved + 1
 
-    -- Only check fuel periodically
     if blocksMoved >= FUEL_CHECK_INTERVAL then
         checkFuel()
         blocksMoved = 0
@@ -77,10 +73,8 @@ local function forward()
     checkFuel()
 
     while not turtle.forward() do
-
         turtle.dig()
         turtle.attack()
-
         sleep(0.2)
     end
 
@@ -93,10 +87,8 @@ local function down()
     checkFuel()
 
     while not turtle.down() do
-
         turtle.digDown()
         turtle.attackDown()
-
         sleep(0.2)
     end
 
@@ -109,10 +101,8 @@ local function up()
     checkFuel()
 
     while not turtle.up() do
-
         turtle.digUp()
         turtle.attackUp()
-
         sleep(0.2)
     end
 
@@ -167,16 +157,12 @@ for layer = 1, sizeY do
     print("Mining layer " .. layer .. " / " .. sizeY)
     print("================================")
 
-    -- -----------------------------------------------
-    -- MINE EACH ROW
-    -- -----------------------------------------------
-
     for row = 1, sizeX do
 
         print("Row " .. row .. " / " .. sizeX)
 
         -- -------------------------------------------
-        -- Mine across the row
+        -- Mine the row
         -- -------------------------------------------
 
         for block = 1, sizeZ - 1 do
@@ -189,33 +175,70 @@ for layer = 1, sizeY do
 
         if row < sizeX then
 
-            if row % 2 == 1 then
+            if layer % 2 == 1 then
 
-                -- Odd row:
-                -- Turn right, move to next row,
-                -- then turn right again.
+                -- ===================================
+                -- ODD LAYERS
+                -- ===================================
+                --
+                -- Row 1: →
+                -- Row 2: ←
+                -- Row 3: →
+                -- Row 4: ←
 
-                turnRight()
-                forward()
-                turnRight()
+                if row % 2 == 1 then
+
+                    -- →
+                    -- Turn toward next row
+                    turnRight()
+                    forward()
+                    turnRight()
+
+                else
+
+                    -- ←
+                    -- Turn toward next row
+                    turnLeft()
+                    forward()
+                    turnLeft()
+
+                end
 
             else
 
-                -- Even row:
-                -- Turn left, move to next row,
-                -- then turn left again.
+                -- ===================================
+                -- EVEN LAYERS
+                -- ===================================
+                --
+                -- Row 1: ←
+                -- Row 2: →
+                -- Row 3: ←
+                -- Row 4: →
 
-                turnLeft()
-                forward()
-                turnLeft()
+                if row % 2 == 1 then
 
+                    -- ←
+                    -- Turn toward next row
+                    turnLeft()
+                    forward()
+                    turnLeft()
+
+                else
+
+                    -- →
+                    -- Turn toward next row
+                    turnRight()
+                    forward()
+                    turnRight()
+
+                end
             end
         end
     end
 
-    -- -----------------------------------------------
+    -- =================================================
     -- MOVE TO NEXT LAYER
-    -- -----------------------------------------------
+    -- =================================================
 
     if layer < sizeY then
 
@@ -224,10 +247,9 @@ for layer = 1, sizeY do
         -- Move down one block
         down()
 
-        -- Turn around 180 degrees
-        --
-        -- This resets the direction for the
-        -- next 4x4 layer.
+        -- Turn around so the next layer travels
+        -- in the opposite direction.
+        print("Turning around for next layer")
 
         turnAround()
     end
@@ -242,18 +264,7 @@ print("Mining complete!")
 print("Returning home...")
 print("================================")
 
--- We moved down:
---
---   1 block before layer 1
---   1 block between layer 1 and 2
---   1 block between layer 2 and 3
---   1 block between layer 3 and 4
---
--- Total = 4 blocks.
---
--- After the 4th layer, the turtle is back at
--- the original X/Z position.
-
+-- Return to starting height.
 for i = 1, sizeY do
     up()
 end
